@@ -39,9 +39,6 @@ def optimize(f, n, bound = 10, trials = 10, stepSize = 0.01, steps = 100, minimi
         for step in range(steps):
             # Run steps iterations of gradient descent on the random coordinates.
             grad = gradient(f, n, coordinates)
-            print(coordinates)
-            print(grad)
-            print("-----------")
             for i in range(len(coordinates)):
                 if minimize:
                     coordinates[i] -= stepSize * grad[i]
