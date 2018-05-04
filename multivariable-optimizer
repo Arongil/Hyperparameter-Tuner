@@ -37,3 +37,14 @@ def optimize(f, n, bound = 10, trials = 10, stepSize = 0.01, steps = 100, minimi
                     coordinate -= stepSize * grad[i]
                 else:
                     coordinate += stepSize * grad[i]
+        criticalPoints.append(coordinates)
+    globalOptimum = criticalPoints[0]
+    for i in range(1, len(criticalPoints)):
+        if minimize:
+            if f(criticalPoints[i]) < f(globalOptimum):
+                globalOptimum = criticalPoints[i]
+        else:
+            if f(criticalPoints[i]) > f(globalOptimum):
+                globalOptimum = criticalPoints[i]
+    return globalOptimum
+        
