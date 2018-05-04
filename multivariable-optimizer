@@ -7,7 +7,13 @@ def f1(v):
 
 # gradient computes the gradient of a function of n dimensions, f, at position v.
 def gradient(f, n, v):
-    
+    grad = [] # This is the gradient array of partial derivatives.
+    h = 1e-8 # The limiting variable in the limit definition of the partial derivative is approximated with 1e-8.
+    for i in range(n):
+        step = v[:]
+        step[i] += h
+        grad[i] = (f(step) - f(v)) / h # limit definition of the partial derivative
+    return grad
 
 # optimize uses gradient descent to minimize or maximize arbitrary multivariable functions.
 def optimize(f, n, bound = 10, trials = 10, stepSize = 0.01, steps = 100, minimize = True):
@@ -25,4 +31,9 @@ def optimize(f, n, bound = 10, trials = 10, stepSize = 0.01, steps = 100, minimi
             coordinates[i] = (np.random() - 1/2) * 2*bound
         for i in range(steps):
             # Run steps iterations of gradient descent.
-            
+            grad = gradient(f, n, coordinates)
+            for coordinate in coordinates:
+                if minimize:
+                    coordinate -= stepSize * grad[i]
+                else:
+                    coordinate += stepSize * grad[i]
