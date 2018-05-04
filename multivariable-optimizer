@@ -1,0 +1,28 @@
+import numpy as np
+
+# f1 is an example function to optimize.
+def f1(v):
+    # v is an 2x1 array/vector.
+    return v[0]**2 / 2 + Math.sin(v[1] / 12 + v[0]*v[1]/20)/50 - 2
+
+# gradient computes the gradient of a function of n dimensions, f, at position v.
+def gradient(f, n, v):
+    
+
+# optimize uses gradient descent to minimize or maximize arbitrary multivariable functions.
+def optimize(f, n, bound = 10, trials = 10, stepSize = 0.01, steps = 100, minimize = True):
+    '''
+    optimize takes a function (f), its dimension (n), the range in which it should initialize coordinates for optimization,
+    how many trials to run in search for a global minimum (trials), how big steps should be (stepSize), how many times to run gradient descent (steps),
+    and a boolean on whether to maximize or minimize (minimize). It applies gradient descent/ascent steps times to locate a critical point.
+    It repeats this process trials times and returns the lowest/highest of the local minima/maxima.
+    '''
+    criticalPoints = [] # Stores local critical points as 1x2 arrays: [value, position].
+    for trial in range(trials):
+        # Initialize random coordinates within bound of the origin.
+        coordinates = []
+        for i in range(n):
+            coordinates[i] = (np.random() - 1/2) * 2*bound
+        for i in range(steps):
+            # Run steps iterations of gradient descent.
+            
