@@ -8,34 +8,31 @@ print('data has %d chars, %d unique' % (data_size, vocab_size))
 
 char_to_ix = { ch:i for i,ch in enumerate(chars)}
 ix_to_char = { i:ch for i, ch in enumerate(chars)}
-print(char_to_ix)
-print(ix_to_char)
 
 vector_for_char_a = np.zeros((vocab_size, 1))
 vector_for_char_a[char_to_ix['a']] = 1
-print(vector_for_char_a.ravel())
 
 class RNN:
 
     def __init__(self, hidden_size = 80, seq_length = 20, learning_rate = 1e-1):
-        #model parameters
-        self.hidden_size = hidden_size
-        self.seq_length = seq_length
-        self.learning_rate = learning_rate
-        
-        self.Wxh = np.random.randn(hidden_size, vocab_size) * 0.01 #input to hidden
-        self.Whh = np.random.randn(hidden_size, hidden_size) * 0.01 #input to hidden
-        self.Why = np.random.randn(vocab_size, hidden_size) * 0.01 #input to hidden
-        self.bh = np.zeros((hidden_size, 1))
-        self.by = np.zeros((vocab_size, 1))
+      #model parameters
+      self.hidden_size = hidden_size
+      self.seq_length = seq_length
+      self.learning_rate = learning_rate
+      
+      self.Wxh = np.random.randn(hidden_size, vocab_size) * 0.01 #input to hidden
+      self.Whh = np.random.randn(hidden_size, hidden_size) * 0.01 #input to hidden
+      self.Why = np.random.randn(vocab_size, hidden_size) * 0.01 #input to hidden
+      self.bh = np.zeros((hidden_size, 1))
+      self.by = np.zeros((vocab_size, 1))
 
-        p=0  
-        self.inputs = [char_to_ix[ch] for ch in data[p: p + self.seq_length]]
-        self.targets = [char_to_ix[ch] for ch in data[p+1: p + self.seq_length + 1]]
-        n, p = 0, 0
-        self.mWxh, self.mWhh, self.mWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
-        self.mbh, self.mby = np.zeros_like(self.bh), np.zeros_like(self.by) # memory variables for Adagrad                                                                                                                
-        self.smooth_loss = -np.log(1.0/vocab_size)*self.seq_length # loss at iteration 0     
+      p=0  
+      self.inputs = [char_to_ix[ch] for ch in data[p: p + self.seq_length]]
+      self.targets = [char_to_ix[ch] for ch in data[p+1: p + self.seq_length + 1]]
+      n, p = 0, 0
+      self.mWxh, self.mWhh, self.mWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
+      self.mbh, self.mby = np.zeros_like(self.bh), np.zeros_like(self.by) # memory variables for Adagrad                                                                                                                
+      self.smooth_loss = -np.log(1.0/vocab_size)*self.seq_length # loss at iteration 0     
 
     def lossFun(self, inputs, targets, hprev):
       """                                                                                                                                                                                         
@@ -45,14 +42,14 @@ class RNN:
       """
       #store our inputs, hidden states, outputs, and probability values
       xs, hs, ys, ps, = {}, {}, {}, {} #Empty dicts
-        # Each of these are going to be SEQ_LENGTH(Here 25) long dicts i.e. 1 vector per time(seq) step
-        # xs will store 1 hot encoded input characters for each of 25 time steps (26, 25 times)
-        # hs will store hidden state outputs for 25 time steps (100, 25 times)) plus a -1 indexed initial state
-        # to calculate the hidden state at t = 0
-        # ys will store targets i.e. expected outputs for 25 times (26, 25 times), unnormalized probabs
-        # ps will take the ys and convert them to normalized probab for chars
-        # We could have used lists BUT we need an entry with -1 to calc the 0th hidden layer
-        # -1 as  a list index would wrap around to the final element
+      # Each of these are going to be SEQ_LENGTH(Here 25) long dicts i.e. 1 vector per time(seq) step
+      # xs will store 1 hot encoded input characters for each of 25 time steps (26, 25 times)
+      # hs will store hidden state outputs for 25 time steps (100, 25 times)) plus a -1 indexed initial state
+      # to calculate the hidden state at t = 0
+      # ys will store targets i.e. expected outputs for 25 times (26, 25 times), unnormalized probabs
+      # ps will take the ys and convert them to normalized probab for chars
+      # We could have used lists BUT we need an entry with -1 to calc the 0th hidden layer
+      # -1 as  a list index would wrap around to the final element
       xs, hs, ys, ps = {}, {}, {}, {}
       #init with previous hidden state
         # Using "=" would create a reference, this creates a whole separate copy
@@ -166,24 +163,85 @@ class RNN:
         n += 1 # iteration counter
       return self.smooth_loss
 
+
+def networkLoss(v):
+  hypotheticalRNN = RNN(60, 20, v[0])
+  return hypotheticalRNN.train(10)
+
 class HPT: # HyperparameterTuner
 
-  def __init__(self, tuning_rate = 0.01, training_steps = 1000):
+  def __init__(self, network, tuning_rate = 0.01, training_steps = 1000):
     '''
     Hyperparameter tuners find the best combination of hyperparameters to make RNNs learn the fastest.
     They pick a random combination of hyperparameters, first, and perform gradient descent to minimize loss after a constant number of training steps.
     The scalar multiplied into the gradient at each step is tuning_rate.
     The constant number of training steps used on networks to evaluate combinations is training_steps.
     '''
+    self.network = network
     self.tuning_rate = tuning_rate
     self.training_steps = training_steps
 
-  def tune(network):
+  def networkLoss(self, v):
+    hypotheticalRNN = RNN(self.network.hidden_size, self.network.seq_length, v[0])
+    return hypotheticalRNN.train(1)
+
+  def tune(self):
     # apply Gradient Descent on randomly initialized network hyperparameters. (Tune a hyperparameter tuner??)
     # note: RNN.train returns the loss of the network following the training.
     # This loss, however, increases as the network improves. Therefore, add the gradient to maximize.
-    return
+    return newtonOptimize(networkLoss, 1, maxSteps=40, lowerBound = 0, stepSize=1)
+
+def mixedPartialDerivative(f, v, order):
+    # order is an array of dimensions by which to take partial derivatives.
+    # order = [0, 1]    ==> partial of f with respect to x then y.
+    # order = [1, 2, 2] ==> partial of f with respect to y then z then z.
+    h = 1e-6 # The limiting variable in the limit definition of the partial derivative.
+    if len(order) == 1:
+        # If order is 1, numerically approximate the partial derivative as usual.
+        step = v[:]
+        step[order[0]] += h
+        return (f(step) - f(v)) / h
+    # Peel the onion of layers: first, the outermost, then work inwards.
+    step = v[:]
+    step[order[len(order) - 1]] += h # Final derivative step done first.
+    # Recursively calculate partial derivatives for the final derivative.
+    return (mixedPartialDerivative(f, step, order[0:len(order) - 1]) - mixedPartialDerivative(f, v, order[0:len(order) - 1])) / h
+
+def hessian(f, v):
+    H = []
+    for i in range(len(v)):
+        H.append([])
+        for j in range(len(v)):
+            H[i].append(mixedPartialDerivative(f, v, [i, j]))
+    return H
+
+# gradient computes the gradient of a function of n dimensions, f, at position v.
+def gradient(f, v):
+    grad = [0 for i in range(len(v))] # This is the gradient array of partial derivatives.
+    h = 1e-8 # The limiting variable in the limit definition of the partial derivative is approximated with 1e-8.
+    for i in range(len(v)):
+        step = v[:]
+        step[i] += h
+        grad[i] = (f(step) - f(v)) / h # limit definition of the partial derivative
+    return grad
+
+def newtonOptimize(f, n, convergence = 0.0001, maxSteps = 1000, stepSize=0.1, lowerBound = -1, upperBound = 1, maximize=False):
+    coordinates = np.array([np.random.random() * (upperBound-lowerBound) + lowerBound for i in range(n)])
+    convergenceSquared = convergence**2
+    print(coordinates)
+    for i in range(maxSteps):
+        grad = np.array(gradient(f, coordinates.tolist()))
+        if grad.dot(grad) < convergenceSquared: # x dot x is the squared magnitude of x
+            break # Optimum reached.
+        H = np.array(hessian(f, coordinates.tolist()))
+        step = -grad.dot(np.linalg.inv(H))
+        coordinates = coordinates + stepSize * (step if maximize else -step)
+    print(i)
+    return coordinates.tolist()
 
 character_model = RNN()
-character_model.train(1000)
-character_model.sampleN(200)
+# character_model.train(1000)
+# character_model.sampleN(200)
+
+hyperparameterTuner = HPT(character_model)
+optimum = hyperparameterTuner.tune()
