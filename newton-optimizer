@@ -1,0 +1,58 @@
+import numpy as np
+
+def f1(v):
+    return 100 * (v[1] - v[0]*v[0])**2 + (1 - v[0])**2
+
+def f2(v): # #d analogy of bell curve
+    return np.exp(-(v[0]*v[0] + v[1]*v[1]))
+# -2*e^(-(x^2 + y^2)) + 4*x*x*e^(-(x^2 + y^2))
+
+def f3(v):
+    return v[0]*v[0]*v[0] + v[0]*v[0] + v[0]*v[1]
+
+def mixedPartialDerivative(f, v, order):
+    # order is an array of dimensions by which to take partial derivatives.
+    # order = [0, 1]    ==> partial of f with respect to x then y.
+    # order = [1, 2, 2] ==> partial of f with respect to y then z then z.
+    h = 1e-6 # The limiting variable in the limit definition of the partial derivative.
+    if len(order) == 1:
+        # If order is 1, numerically approximate the partial derivative as usual.
+        step = v[:]
+        step[order[0]] += h
+        return (f(step) - f(v)) / h
+    # Peel the onion of layers: first, the outermost, then work inwards.
+    step = v[:]
+    step[order[len(order) - 1]] += h # Final derivative step done first.
+    # Recursively calculate partial derivatives for the final derivative.
+    return (mixedPartialDerivative(f, step, order[0:len(order) - 1]) - mixedPartialDerivative(f, v, order[0:len(order) - 1])) / h
+
+def hessian(f, v):
+    H = []
+    for i in range(len(v)):
+        H.append([])
+        for j in range(len(v)):
+            H[i].append(mixedPartialDerivative(f, v, [i, j]))
+    return H
+
+# gradient computes the gradient of a function of n dimensions, f, at position v.
+def gradient(f, v):
+    grad = [0 for i in range(len(v))] # This is the gradient array of partial derivatives.
+    h = 1e-8 # The limiting variable in the limit definition of the partial derivative is approximated with 1e-8.
+    for i in range(len(v)):
+        step = v[:]
+        step[i] += h
+        grad[i] = (f(step) - f(v)) / h # limit definition of the partial derivative
+    return grad
+
+def newtonOptimize(f, n, convergence = 0.0001, maxSteps = 1000, stepSize=0.1, lowerBound = -1, upperBound = 1, maximize=False):
+    coordinates = np.array([np.random.random() * (upperBound-lowerBound) + lowerBound for i in range(n)])
+    convergenceSquared = convergence**2
+    for i in range(maxSteps):
+        grad = np.array(gradient(f, coordinates.tolist()))
+        if grad.dot(grad) < convergenceSquared: # x dot x is the squared magnitude of x
+            break # Optimum reached.
+        H = np.array(hessian(f, coordinates.tolist()))
+        step = -grad.dot(np.linalg.inv(H)) # step to the minimum
+        coordinates = coordinates + stepSize * (-step if maximize else step)
+    print(i)
+    return coordinates.tolist()
