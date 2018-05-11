@@ -1,0 +1,48 @@
+import numpy as np
+
+def getBest(f, criticalPoints, maximize):
+    globalOptimum = criticalPoints[0]
+    optimumOutput = f(globalOptimum)
+    for i in range(1, len(criticalPoints)):
+        contender = f(criticalPoints[i])
+        if (not maximize and contender < optimumOutput) or (maximize and contender > optimumOutput):
+            globalOptimum = criticalPoints[i]
+            optimumOutput = contender
+    return globalOptimum
+
+# gradient computes the gradient of a function of n dimensions, f, at position v.
+def gradient(f, v):
+    grad = [0 for i in range(len(v))] # This is the gradient array of partial derivatives.
+    h = 1e-10 # The limiting variable in the limit definition of the partial derivative is approximated with 1e-8.
+    for i in range(len(v)):
+        step = v[:]
+        step[i] += h
+        grad[i] = (f(step) - f(v)) / h # limit definition of the partial derivative
+    return grad
+
+# optimize uses gradient descent to minimize or maximize arbitrary multivariable functions. optimize should only take functions that don't explode.
+# This means the function shouldn't have points at negative infinity if it's being minimized, for example.
+def optimize(f, n, convergence = 1e-4, trials = 10, lowerBound = -1, upperBound = 1, stepSize = 0.01, steps = 1000, maximize = False):
+    '''
+    optimize takes a function (f), its dimension (n), the range in which it should initialize coordinates for optimization,
+    how many trials to run in search for a global minimum (trials), how big steps should be (stepSize),
+    how many times to run gradient descent (steps), whether or not to normalize the gradient before adding it (normalize),
+    and a boolean on whether to maximize or minimize (minimize). It applies gradient descent/ascent steps times to locate a critical point.
+    It repeats this process trials times and returns the lowest/highest of the local minima/maxima.
+    Don't use rapidly changing functions with optimize. The higher gradients get, the lower stepSize must be set to avoid explosion.
+     '''
+    criticalPoints = [] # Stores local critical points as 1x2 arrays: [value, position].
+    for trial in range(trials):
+        # Initialize random coordinates within bound of the origin.
+        coordinates = np.array([np.random.random() * (upperBound - lowerBound) + lowerBound for i in range(n)])
+        for step in range(steps):
+            # Run steps iterations of gradient descent on the random coordinates.
+            grad = np.array(gradient(f, coordinates.tolist()))
+            magnitude = np.sqrt(grad.dot(grad))
+            if magnitude < convergence:
+                break # If the gradient is sufficiently small, there's no point pursuing further gains.
+            grad = grad / magnitude # Normalize the gradient.
+            for i in range(len(coordinates)):
+                coordinates[i] += (stepSize if maximize else -stepSize) * grad[i]
+        criticalPoints.append(coordinates.tolist())
+    return getBest(f, criticalPoints, maximize)
