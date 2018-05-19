@@ -1,5 +1,5 @@
 import numpy as np
-import optimize.multivariable_calculus as mvc
+import optimization.multivariable_calculus as mvc
 
 def best(f, criticalPoints):
     globalOptimum = criticalPoints[0]
