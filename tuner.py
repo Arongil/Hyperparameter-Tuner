@@ -7,10 +7,10 @@ import RNN as rnn
 
 def networkLoss(v):
   averageLoss = 0
-  for i in range(100): # v[0] and v[1] must be whole numbers
+  for i in range(10): # v[0] and v[1] must be whole numbers
     hypotheticalRNN = rnn.RNN(v[0], v[1], v[2])
     hypotheticalRNN.initAdagrad()
-    averageLoss += hypotheticalRNN.train(1000)/v[1]
+    averageLoss += hypotheticalRNN.train(1)/v[1]
   return averageLoss
 
 def continuousNetworkLoss(v):
@@ -29,7 +29,7 @@ def continuousNetworkLoss(v):
 
 class HPT: # HyperparameterTuner
 
-  def __init__(self, network, tuning_rate = 01e-2, training_steps = 1e3, optimizer=sd.optimize):
+  def __init__(self, network, tuning_rate = 1e-2, training_steps = 1e3, optimizer=sd.optimize):
     '''
     Hyperparameter tuners find the best combination of hyperparameters to make RNNs learn the fastest.
     They pick a random combination of hyperparameters, first, and perform gradient descent to minimize loss after a constant number of training steps.
@@ -50,7 +50,35 @@ character_model = rnn.RNN()
 # character_model.train(1000)
 # character_model.sampleN(200)
 
-hyperparameterTuner = HPT(character_model, optimizer = lambda net: sd.optimize
-                         (net, 3, maxSteps=20, stepSize=0.05, lowerBound = 1, upperBound = 10, convergence=1e-4, maximize=False))
-optimum = hyperparameterTuner.tune()
-print("The optimum is %s." %(optimum))
+# Steepest Descent Tuners [CHANGE STEPS BACK TO EXPECTED]
+sdTuner10 = HPT(character_model, optimizer = lambda net: sd.optimize
+                         (net, 3, maxSteps=1, stepSize=0.1, lowerBound = 1, upperBound = 10, convergence=1e-4, maximize=False))
+sdTuner100 = HPT(character_model, optimizer = lambda net: sd.optimize
+                         (net, 3, maxSteps=10, stepSize=0.1, lowerBound = 1, upperBound = 10, convergence=1e-4, maximize=False))
+sdTuner1000 = HPT(character_model, optimizer = lambda net: sd.optimize
+                         (net, 3, maxSteps=100, stepSize=0.1, lowerBound = 1, upperBound = 10, convergence=1e-4, maximize=False))
+sdTuner1000Ext = HPT(character_model, optimizer = lambda net: sd.optimize
+                         (net, 3, maxSteps=100, stepSize=0.5, lowerBound = 1, upperBound = 10, convergence=1e-4, maximize=False))
+
+# Newton's Method Tuners [CHANGE STEPS BACK TO EXPECTED]
+newtonTuner10 = HPT(character_model, optimizer = lambda net: newton.optimize
+                         (net, 3, maxSteps=1, lowerBound = 1, upperBound = 10, convergence=1e-4, maximize=False))
+newtonTuner100 = HPT(character_model, optimizer = lambda net: newton.optimize
+                         (net, 3, maxSteps=10, lowerBound = 1, upperBound = 10, convergence=1e-4, maximize=False))
+newtonTuner1000 = HPT(character_model, optimizer = lambda net: newton.optimize
+                         (net, 3, maxSteps=100, lowerBound = 1, upperBound = 10, convergence=1e-4, maximize=False))
+
+# Quasi-Newton Tuners [CHANGE STEPS BACK TO EXPECTED]
+qnTuner10 = HPT(character_model, optimizer = lambda net: qn.optimize
+                         (net, 3, maxSteps=1, lowerBound = 1, upperBound = 10, convergence=1e-4))
+qnTuner100 = HPT(character_model, optimizer = lambda net: qn.optimize
+                         (net, 3, maxSteps=10, lowerBound = 1, upperBound = 10, convergence=1e-4))
+qnTuner1000 = HPT(character_model, optimizer = lambda net: qn.optimize
+                         (net, 3, maxSteps=100, lowerBound = 1, upperBound = 10, convergence=1e-4))
+
+output = ""
+output += "STEEPEST DESCENT:\n10 steps (stepSize = 0.1): %s\n100 steps (stepSize = 0.1): %s\n1000 steps (stepSize = 0.1): %s\n1000 steps (stepSize = 0.5): %s" %(sdTuner10.tune(), sdTuner100.tune(), sdTuner1000.tune(), sdTuner1000Ext.tune())
+#output += "NEWTON'S METHOD:\n10 steps: %s\n100 steps: %s\n1000 steps: %s\n" %(newtonTuner10.tune(), newtonTuner100.tune(), newtonTuner1000.tune())
+output += "QUASI-NEWTON:\n10 steps: %s\n100 steps: %s\n1000 steps: %s\n" %(qnTuner10.tune(), qnTuner100.tune(), qnTuner1000.tune())
+with open("output.txt", "w") as text_file:
+        text_file.write(output)
