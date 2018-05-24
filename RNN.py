@@ -142,18 +142,20 @@ class RNN:
 
     def train(self, steps):
       ### sanity checks ###
+      # Square how mistaken the hyperparameters     #
+      # are so second order expansions can operate. #
       if self.learning_rate < 1e-4:
-        return -self.learning_rate + 1e6
+        return -self.learning_rate**2 + 1e6
       if self.learning_rate > 1:
-        return self.learning_rate + 1e6
+        return self.learning_rate**2 + 1e6
       if self.hidden_size < 20:
-          return -self.hidden_size + 1e6
+          return -self.hidden_size**2 + 1e6
       if self.hidden_size > 800:
-          return self.hidden_size + 1e6
+          return self.hidden_size**2 + 1e6
       if self.seq_length < 5:
-          return -self.seq_length + 1e6
+          return -self.seq_length**2 + 1e6
       if self.seq_length > 40:
-          return self.seq_length + 1e6
+          return self.seq_length**2 + 1e6
       ### /sanity check ###
       p, n = 0, 0                                                                                                                   
       while n <= steps:
