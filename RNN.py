@@ -14,18 +14,20 @@ vector_for_char_a[char_to_ix['a']] = 1
 
 class RNN:
 
-    def __init__(self, hidden_size = 80, seq_length = 20, learning_rate = 1e-1):
+    def __init__(self, hidden_size = 80, seq_length = 20, learning_rate = 1e-1, init_hidden = True):
       #model parameters
       self.hidden_size = hidden_size
       self.seq_length = seq_length
       self.learning_rate = learning_rate
-      
-      self.Wxh = np.random.randn(hidden_size, vocab_size) * 0.01 #input to hidden
-      self.Whh = np.random.randn(hidden_size, hidden_size) * 0.01 #input to hidden
-      self.Why = np.random.randn(vocab_size, hidden_size) * 0.01 #input to hidden
-      self.bh = np.zeros((hidden_size, 1))
-      self.by = np.zeros((vocab_size, 1))
 
+      if init_hidden:
+          self.Wxh = np.random.randn(self.hidden_size, vocab_size) * 0.01 #input to hidden
+          self.Whh = np.random.randn(self.hidden_size, self.hidden_size) * 0.01 #input to hidden
+          self.Why = np.random.randn(vocab_size, self.hidden_size) * 0.01 #input to hidden
+          self.bh = np.zeros((self.hidden_size, 1))
+          self.by = np.zeros((vocab_size, 1))
+
+    def initAdagrad(self):
       p=0  
       self.inputs = [char_to_ix[ch] for ch in data[p: p + self.seq_length]]
       self.targets = [char_to_ix[ch] for ch in data[p+1: p + self.seq_length + 1]]
@@ -63,7 +65,7 @@ class RNN:
         xs[t][inputs[t]] = 1 # Inside that t-th input we use the integer in "inputs" list to  set the correct
         hs[t] = np.tanh(np.dot(self.Wxh, xs[t]) + np.dot(self.Whh, hs[t-1]) + self.bh) # hidden state                                                                                                            
         ys[t] = np.dot(self.Why, hs[t]) + self.by # unnormalized log probabilities for next chars                                                                                                           
-        ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars                                                                                                              
+        ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars
         loss += -np.log(ps[t][targets[t],0]) # softmax (cross-entropy loss)                                                                                                                       
       # backward pass: compute gradients going backwards    
       #initalize vectors for gradient values for each set of weights 
@@ -139,6 +141,20 @@ class RNN:
       self.sample(hprev, char_to_ix['a'], n)
 
     def train(self, steps):
+      ### sanity checks ###
+      if self.learning_rate < 1e-4:
+        return -self.learning_rate + 1e6
+      if self.learning_rate > 1:
+        return self.learning_rate + 1e6
+      if self.hidden_size < 20:
+          return -self.hidden_size + 1e6
+      if self.hidden_size > 800:
+          return self.hidden_size + 1e6
+      if self.seq_length < 5:
+          return -self.seq_length + 1e6
+      if self.seq_length > 40:
+          return self.seq_length + 1e6
+      ### /sanity check ###
       p, n = 0, 0                                                                                                                   
       while n <= steps:
         # prepare inputs (we're sweeping from left to right in steps seq_length long)
