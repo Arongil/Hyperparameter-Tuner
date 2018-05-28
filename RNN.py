@@ -20,7 +20,7 @@ class RNN:
       self.seq_length = seq_length
       self.learning_rate = learning_rate
 
-      if init_hidden:
+      if init_hidden and self.sanityChecks() == True:
           self.Wxh = np.random.randn(self.hidden_size, vocab_size) * 0.01 #input to hidden
           self.Whh = np.random.randn(self.hidden_size, self.hidden_size) * 0.01 #input to hidden
           self.Why = np.random.randn(vocab_size, self.hidden_size) * 0.01 #input to hidden
@@ -28,13 +28,14 @@ class RNN:
           self.by = np.zeros((vocab_size, 1))
 
     def initAdagrad(self):
-      p=0  
-      self.inputs = [char_to_ix[ch] for ch in data[p: p + self.seq_length]]
-      self.targets = [char_to_ix[ch] for ch in data[p+1: p + self.seq_length + 1]]
-      n, p = 0, 0
-      self.mWxh, self.mWhh, self.mWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
-      self.mbh, self.mby = np.zeros_like(self.bh), np.zeros_like(self.by) # memory variables for Adagrad                                                                                                                
-      self.smooth_loss = -np.log(1.0/vocab_size)*self.seq_length # loss at iteration 0     
+      if self.sanityChecks() == True:
+          p=0  
+          self.inputs = [char_to_ix[ch] for ch in data[p: p + self.seq_length]]
+          self.targets = [char_to_ix[ch] for ch in data[p+1: p + self.seq_length + 1]]
+          n, p = 0, 0
+          self.mWxh, self.mWhh, self.mWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
+          self.mbh, self.mby = np.zeros_like(self.bh), np.zeros_like(self.by) # memory variables for Adagrad                                                                                                                
+          self.smooth_loss = -np.log(1.0/vocab_size)*self.seq_length # loss at iteration 0     
 
     def lossFun(self, inputs, targets, hprev):
       """                                                                                                                                                                                         
@@ -140,23 +141,31 @@ class RNN:
       #predict the n next characters given 'a'
       self.sample(hprev, char_to_ix['a'], n)
 
-    def train(self, steps):
+    def sanityChecks(self):
       ### sanity checks ###
       # Square how mistaken the hyperparameters     #
       # are so second order expansions can operate. #
-      if self.learning_rate < 1e-4:
-        return -self.learning_rate**2 + 1e6
-      if self.learning_rate > 1:
-        return self.learning_rate**2 + 1e6
+      # Shift error by the bound so optimizers know #
+      # in which direction to guess.                #
       if self.hidden_size < 20:
-          return -self.hidden_size**2 + 1e6
+          return (self.hidden_size - 410)**2 + 1e6
       if self.hidden_size > 800:
-          return self.hidden_size**2 + 1e6
+          return (self.hidden_size - 410)**2 + 1e6
       if self.seq_length < 5:
-          return -self.seq_length**2 + 1e6
+          return (self.seq_length - 25)**2 + 1e6
       if self.seq_length > 40:
-          return self.seq_length**2 + 1e6
-      ### /sanity check ###
+          return (self.seq_length - 25)**2 + 1e6
+      if self.learning_rate < 1e-4:
+        return (self.learning_rate - 0.5)**2 + 1e6
+      if self.learning_rate > 1:
+        return (self.learning_rate - 0.5)**2 + 1e6
+      # All hyperparameters are OK.
+      return True
+
+    def train(self, steps):
+      sanity = self.sanityChecks()
+      if not (sanity == True):
+        return sanity
       p, n = 0, 0                                                                                                                   
       while n <= steps:
         # prepare inputs (we're sweeping from left to right in steps seq_length long)
